@@ -5,11 +5,20 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-# Stage 2 : image finale, on ne récupère que le nécessaire au runtime
-FROM node:22.14.0-alpine
+# Stage 2 : image finale sur Alpine nu. Au runtime on n'a besoin que du
+# binaire node : npm, yarn et corepack (~150 Mo dans l'image node officielle)
+# restent dans le stage de build.
+FROM alpine:3.21
 WORKDIR /app
 ENV NODE_ENV=production
 
+# node est lié dynamiquement à libstdc++/libgcc, absents d'Alpine nu.
+# L'image alpine ne fournit pas d'utilisateur node : on le crée nous-même.
+RUN apk add --no-cache libstdc++ libgcc \
+  && addgroup -g 1000 node \
+  && adduser -u 1000 -G node -s /bin/sh -D node
+
+COPY --from=deps /usr/local/bin/node /usr/local/bin/node
 COPY --from=deps /app/node_modules ./node_modules
 COPY package*.json ./
 COPY src ./src
