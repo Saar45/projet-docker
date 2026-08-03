@@ -2,12 +2,47 @@
 
 API de gestion de tâches (CRUD) construite avec Node.js / Express, dockerisée avec PostgreSQL pour la persistance et un service de statistiques en Python. Projet fil rouge du cours Docker.
 
+## Architecture
+
+- **api** : l'API Todo (Node.js / Express), CRUD complet sur les tâches, stockage PostgreSQL
+- **db** : PostgreSQL 16, données persistées dans le volume nommé `todo_pgdata`, jamais exposé sur la machine hôte
+- **stats-api** : service Python (FastAPI) qui lit la même base et expose le nombre de tâches par état
+- **adminer** : interface web d'administration de la base
+- le tout sur un network custom `todo-network`, piloté par Docker Compose, configuré uniquement par variables d'environnement
+
 ## Lancer le projet
+
+Prérequis : Docker. Puis :
+
+```bash
+git clone https://github.com/Saar45/projet-docker.git
+cd projet-docker
+cp .env.example .env   # puis remplir ses propres valeurs
+docker compose up -d
+```
+
+Les services répondent sur :
+
+- `http://localhost:3000` : l'API Todo
+- `http://localhost:8000/stats` : les statistiques par état (`http://localhost:8000/health` pour l'état du service)
+- `http://localhost:8080` : Adminer (serveur `db`, puis les identifiants du `.env`)
+
+### Déploiement depuis le registry (sans code source)
+
+Les images sont publiées sur Docker Hub (`nabysarr16/todo-api`, `nabysarr16/stats-api`). Dans un dossier contenant uniquement `docker-compose.prod.yml` et un `.env` :
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+### Lancer l'API seule, sans Docker (développement)
 
 ```bash
 npm install
-npm start
+npm start   # nécessite un PostgreSQL joignable avec les variables du .env
 ```
+
+## Les routes de l'API
 
 L'API répond sur `http://localhost:3000` :
 
