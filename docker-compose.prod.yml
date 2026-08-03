@@ -1,0 +1,62 @@
+# Stack de production : les images viennent du registry, plus aucun build local.
+# Dans un dossier vide contenant uniquement ce fichier et un .env :
+#   docker compose -f docker-compose.prod.yml up -d
+services:
+  api:
+    image: nabysarr16/todo-api:1.0.0
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - todo-network
+
+  db:
+    image: postgres:16.6-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - todo_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - todo-network
+
+  stats-api:
+    image: nabysarr16/stats-api:1.0.0
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - todo-network
+
+  adminer:
+    image: adminer:4.8.1
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - todo-network
+
+networks:
+  todo-network:
+
+volumes:
+  todo_pgdata:
