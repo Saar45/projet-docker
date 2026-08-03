@@ -1,44 +1,71 @@
 const crypto = require('node:crypto');
+const { pool } = require('../db');
 
-// Stockage en mémoire : un simple tableau suffit pour valider les routes
-// avant de brancher quoi que ce soit de persistant.
-const tasks = [];
+// 22P02 : "invalid input syntax", levé quand l'id fourni n'est pas un UUID
+// valide. Pour l'API c'est simplement une tâche qui n'existe pas : 404.
+const INVALID_UUID = '22P02';
 
-function findAll() {
-  return tasks;
-}
-
-function findById(id) {
-  return tasks.find((task) => task.id === id) || null;
-}
-
-function create({ description, status = 'todo' }) {
-  const now = new Date().toISOString();
-  const task = {
-    id: crypto.randomUUID(),
-    description,
-    status,
-    createdAt: now,
-    updatedAt: now,
+function toTask(row) {
+  return {
+    id: row.id,
+    description: row.description,
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
-  tasks.push(task);
-  return task;
 }
 
-function update(id, { description, status }) {
-  const task = findById(id);
-  if (!task) return null;
-  if (description !== undefined) task.description = description;
-  if (status !== undefined) task.status = status;
-  task.updatedAt = new Date().toISOString();
-  return task;
+async function findAll() {
+  const { rows } = await pool.query('SELECT * FROM tasks ORDER BY created_at');
+  return rows.map(toTask);
 }
 
-function remove(id) {
-  const index = tasks.findIndex((task) => task.id === id);
-  if (index === -1) return false;
-  tasks.splice(index, 1);
-  return true;
+async function findById(id) {
+  try {
+    const { rows } = await pool.query('SELECT * FROM tasks WHERE id = $1', [id]);
+    return rows[0] ? toTask(rows[0]) : null;
+  } catch (err) {
+    if (err.code === INVALID_UUID) return null;
+    throw err;
+  }
+}
+
+async function create({ description, status = 'todo' }) {
+  const { rows } = await pool.query(
+    `INSERT INTO tasks (id, description, status)
+     VALUES ($1, $2, $3)
+     RETURNING *`,
+    [crypto.randomUUID(), description, status]
+  );
+  return toTask(rows[0]);
+}
+
+async function update(id, { description, status }) {
+  try {
+    const { rows } = await pool.query(
+      `UPDATE tasks
+       SET description = COALESCE($2, description),
+           status = COALESCE($3, status),
+           updated_at = now()
+       WHERE id = $1
+       RETURNING *`,
+      [id, description ?? null, status ?? null]
+    );
+    return rows[0] ? toTask(rows[0]) : null;
+  } catch (err) {
+    if (err.code === INVALID_UUID) return null;
+    throw err;
+  }
+}
+
+async function remove(id) {
+  try {
+    const { rowCount } = await pool.query('DELETE FROM tasks WHERE id = $1', [id]);
+    return rowCount > 0;
+  } catch (err) {
+    if (err.code === INVALID_UUID) return false;
+    throw err;
+  }
 }
 
 module.exports = { findAll, findById, create, update, remove };
