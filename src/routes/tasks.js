@@ -3,9 +3,34 @@ const Task = require('../models/task');
 
 const router = express.Router();
 
+const VALID_STATUSES = ['todo', 'in_progress', 'done'];
+// Limite de taille explicite : une description de 50 000 caractères
+// doit être refusée avec un 400 clair, jamais faire tomber le serveur.
+const MAX_DESCRIPTION_LENGTH = 500;
+
+function validateTask({ description, status }, { requireDescription } = {}) {
+  if (requireDescription && description === undefined) {
+    return 'description est obligatoire';
+  }
+  if (description !== undefined) {
+    if (typeof description !== 'string' || description.trim() === '') {
+      return 'description doit être une chaîne non vide';
+    }
+    if (description.length > MAX_DESCRIPTION_LENGTH) {
+      return `description ne doit pas dépasser ${MAX_DESCRIPTION_LENGTH} caractères`;
+    }
+  }
+  if (status !== undefined && !VALID_STATUSES.includes(status)) {
+    return `status doit être parmi : ${VALID_STATUSES.join(', ')}`;
+  }
+  return null;
+}
+
 // POST /api/tasks : créer une tâche
 router.post('/', (req, res) => {
-  const { description, status } = req.body;
+  const { description, status } = req.body || {};
+  const error = validateTask({ description, status }, { requireDescription: true });
+  if (error) return res.status(400).json({ error });
   const task = Task.create({ description, status });
   res.status(201).json(task);
 });
@@ -24,7 +49,12 @@ router.get('/:id', (req, res) => {
 
 // PUT /api/tasks/:id : modifier une tâche
 router.put('/:id', (req, res) => {
-  const { description, status } = req.body;
+  const { description, status } = req.body || {};
+  if (description === undefined && status === undefined) {
+    return res.status(400).json({ error: 'aucun champ à modifier (description ou status attendu)' });
+  }
+  const error = validateTask({ description, status });
+  if (error) return res.status(400).json({ error });
   const task = Task.update(req.params.id, { description, status });
   if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
   res.json(task);
