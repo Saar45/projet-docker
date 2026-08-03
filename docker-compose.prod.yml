@@ -3,7 +3,7 @@
 #   docker compose -f docker-compose.prod.yml up -d
 services:
   api:
-    image: nabysarr16/todo-api:1.0.0
+    image: nabysarr16/todo-api:1.0.1
     ports:
       - "${PORT:-3000}:3000"
     env_file:
