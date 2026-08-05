@@ -35,3 +35,32 @@ jobs:
           # Le sha du commit comme tag : on saura toujours quel code tourne,
           # et le rollback devient une commande.
           tags: ${{ secrets.DOCKERHUB_USER }}/todo-api:${{ github.sha }}
+
+  deploy:
+    # Rien ne se déploie avant que l'image existe, et seulement depuis main.
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    # Ce job tourne chez nous, à côté de la machine cible : le runner GitHub
+    # hébergé ne pourrait jamais joindre une machine derrière une box.
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      # La clé privée vit dans un agent SSH, en mémoire seulement :
+      # jamais écrite sur le disque du runner.
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+      - name: Envoyer le compose de production
+        run: scp -P ${{ secrets.DEPLOY_PORT }} -o StrictHostKeyChecking=accept-new compose.yml ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/todo/compose.yml
+      - name: Déployer la version du commit
+        run: ssh -p ${{ secrets.DEPLOY_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "cd /srv/todo && TAG=${{ github.sha }} docker compose up -d"
+      - name: Vérifier que l'API répond
+        run: |
+          for i in $(seq 1 15); do
+            if curl -sf http://${{ secrets.DEPLOY_HOST }}:3000/health > /dev/null; then
+              echo "API en ligne :" && curl -s http://${{ secrets.DEPLOY_HOST }}:3000/health
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "L'API ne répond pas après le déploiement" && exit 1

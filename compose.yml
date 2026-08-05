@@ -1,0 +1,34 @@
+# Stack de production, déployée sur la machine cible dans /srv/todo.
+# Ne construit rien : l'image est téléchargée, la version vient de l'extérieur.
+#   cd /srv/todo && TAG=<sha du commit> docker compose up -d
+services:
+  todo-api:
+    container_name: todo-api   # nom fixe : la pipeline et les scripts comptent dessus
+    image: nabysarr16/todo-api:${TAG}
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env                   # copié une fois à la main, jamais dans le dépôt
+    depends_on:
+      todo-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  todo-db:
+    container_name: todo-db
+    image: postgres:16.6-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - todo_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  todo_pgdata:
