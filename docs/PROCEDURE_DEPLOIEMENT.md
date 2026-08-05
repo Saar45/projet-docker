@@ -115,7 +115,7 @@ Corriger le sha et recommencer.
 | **Disponibilité à 1 MAIS erreurs 5xx qui explosent** | la base est coupée ou injoignable (l'API répond `503 base de données injoignable`) | `ssh -i deploy_key -p 2222 root@localhost "docker start todo-db"` — si déjà `Up` : vérifier le réseau `docker network inspect todo_default` doit lister `todo-api` ET `todo-db` ; sinon `cd /srv/todo && TAG=<sha courant> docker compose up -d` remet tout d'équerre |
 | API qui répond mais **données vides/bizarres** | conteneur relancé sans sa config (`.env` non lu) | `cd /srv/todo && TAG=<sha courant> docker compose up -d` (recrée avec la bonne config) |
 | Machine qui **rame**, tout est lent | processus parasites qui saturent le CPU | `ssh ... "docker ps"` → repérer les conteneurs inconnus (ex. `hog-*`), `docker rm -f <noms>` |
-| Job `deploy` bloqué en **Queued** sans erreur | le runner self-hosted est arrêté | sur le poste : `cd ~/Developer/devops_ipssi/actions-runner && ./run.sh` et laisser la fenêtre ouverte |
+| Job `deploy` bloqué en **Queued** sans erreur | le runner self-hosted est arrêté | sur le poste : `cd ~/Developer/devops_ipssi/actions-runner && ./svc.sh status` — si arrêté, `./svc.sh start` (le runner est un service launchd, il redémarre normalement tout seul avec la machine) |
 | `port is already allocated` au `compose up` | un autre conteneur occupe le port 3000 côté machine cible | `ssh ... "docker ps"` → identifier l'occupant, l'arrêter s'il est illégitime, relancer le `compose up` |
 
 ## 6. Durée attendue et fenêtre
