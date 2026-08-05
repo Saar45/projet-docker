@@ -16,10 +16,46 @@ jobs:
       - run: npm ci
       - run: npm test
 
+  test-integration:
+    runs-on: ubuntu-latest
+    # Une vraie base PostgreSQL à côté du job, le temps du job.
+    services:
+      postgres:
+        image: postgres:16.6-alpine
+        env:
+          POSTGRES_USER: todo_user
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: todo_test
+        ports:
+          - 5432:5432
+        # Sans ce healthcheck, les tests démarrent avant la base et échouent
+        # de façon intermittente.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Dans un services: GitHub Actions, la base est joignable sur localhost,
+      # pas par son nom de service comme dans un docker-compose.
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: todo_user
+      DB_PASSWORD: test
+      DB_NAME: todo_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run test:integration
+
   build:
     # On ne publie jamais une image dont les tests sont rouges,
     # et jamais depuis une branche de travail.
-    needs: test
+    needs: [test, test-integration]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
