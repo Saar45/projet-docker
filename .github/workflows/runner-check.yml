@@ -1,0 +1,13 @@
+name: Runner check
+
+# Déclenchement manuel uniquement : la preuve que le job tourne bien
+# sur notre machine, jamais déclenchée par un push de branche.
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: self-hosted
+    steps:
+      - run: hostname
+      - run: docker ps --format '{{.Names}}'
