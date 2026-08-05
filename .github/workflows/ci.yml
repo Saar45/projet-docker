@@ -86,8 +86,8 @@ jobs:
       - uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
-      - name: Envoyer le compose de production
-        run: scp -P ${{ secrets.DEPLOY_PORT }} -o StrictHostKeyChecking=accept-new compose.yml ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/todo/compose.yml
+      - name: Envoyer le compose de production et la config de monitoring
+        run: scp -P ${{ secrets.DEPLOY_PORT }} -o StrictHostKeyChecking=accept-new -r compose.yml monitoring ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/todo/
       - name: Déployer la version du commit
         run: ssh -p ${{ secrets.DEPLOY_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "cd /srv/todo && TAG=${{ github.sha }} docker compose up -d"
       - name: Vérifier que l'API répond

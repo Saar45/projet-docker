@@ -1,0 +1,10 @@
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    # Le nom du service sur le réseau interne, JAMAIS localhost :
+    # depuis le conteneur Grafana, localhost:9090 désigne Grafana lui-même.
+    url: http://prometheus:9090
+    isDefault: true
