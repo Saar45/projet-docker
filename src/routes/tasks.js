@@ -14,9 +14,7 @@ router.post('/', async (req, res) => {
 });
 
 // GET /api/tasks : lister toutes les tâches
-router.get('/', async (req, res, next) => {
-  // Régression volontaire (exercice rollback, phase 5 J3)
-  return next(new Error('régression volontaire'));
+router.get('/', async (req, res) => {
   res.json(await Task.findAll());
 });
 
