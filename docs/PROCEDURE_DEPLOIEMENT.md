@@ -95,6 +95,20 @@ Corriger le sha et recommencer.
 
 ## 5. Pannes connues et leur signature sur le tableau de bord
 
+> **Réflexe appris en passation** : sans trafic utilisateur, le panneau Erreurs
+> peut rester plat même quand tout est cassé. Le diagnostic le plus rapide,
+> valable dans tous les cas, c'est le contraste de deux curls :
+> ```bash
+> curl -s -m 3 -w " [%{http_code}]" localhost:3000/health
+> curl -s -m 3 -w " [%{http_code}]" localhost:3000/api/tasks
+> ```
+> `/health` OK + `/api/tasks` en 503 → problème côté base (ligne 2).
+> Les deux injoignables → problème côté API (ligne 1).
+> Les deux OK alors qu'une panne est signalée → penser à la saturation : sur une
+> machine multi-cœurs, des processus parasites ne ralentissent pas forcément une
+> petite API. Le signal fiable, c'est `docker ps` (conteneurs inconnus) et
+> `docker stats --no-stream` (CPU à 100 %), pas la latence.
+
 | Signature Grafana | Diagnostic probable | Geste |
 |---|---|---|
 | **Disponibilité à 0**, trafic plat | le conteneur `todo-api` est arrêté ou mort | `ssh -i deploy_key -p 2222 root@localhost "docker start todo-api"` puis vérif `curl localhost:3000/health` |
