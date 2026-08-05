@@ -4,7 +4,9 @@
   "description": "API de gestion de tâches - projet fil rouge Docker",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "node --test tests/unit/*.test.js",
+    "test:integration": "node --test tests/integration/*.test.js"
   },
   "license": "MIT",
   "dependencies": {
