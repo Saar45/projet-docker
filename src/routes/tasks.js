@@ -1,6 +1,7 @@
 const express = require('express');
 const Task = require('../models/task');
 const { validateTask } = require('../validation');
+const { tasksCreatedTotal } = require('../metrics');
 
 const router = express.Router();
 
@@ -10,6 +11,7 @@ router.post('/', async (req, res) => {
   const error = validateTask({ description, status }, { requireDescription: true });
   if (error) return res.status(400).json({ error });
   const task = await Task.create({ description, status });
+  tasksCreatedTotal.inc();
   res.status(201).json(task);
 });
 
