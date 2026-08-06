@@ -19,7 +19,7 @@ spec:
         - name: todo-api
           # Le sha d'un commit dont la pipeline est verte, jamais latest :
           # c'est la pipeline qui mettra ce tag à jour à chaque push (phase 5).
-          image: nabysarr16/todo-api:d4309d04a7c696c7674431ef4febfb1866f4ec7a
+          image: nabysarr16/todo-api:2fc5e6cc4ff947c250aac16ea3d0f98eb64a1b64
           ports:
             - containerPort: 3000
           # Toute la configuration vient du cluster, rien de l'image :
@@ -29,3 +29,19 @@ spec:
                 name: todo-config
             - secretRef:
                 name: todo-secret
+          # "Ce pod est-il prêt à recevoir du trafic ?" — si non, il est retiré
+          # du Service sans être redémarré, le temps de se rétablir.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          # "Ce pod est-il toujours vivant ?" — si non, le conteneur est tué
+          # et redémarré. Délai initial plus large : on laisse l'app démarrer.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
