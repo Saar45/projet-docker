@@ -22,3 +22,10 @@ spec:
           image: nabysarr16/todo-api:d4309d04a7c696c7674431ef4febfb1866f4ec7a
           ports:
             - containerPort: 3000
+          # Toute la configuration vient du cluster, rien de l'image :
+          # envFrom déverse chaque clé des deux objets en variable d'environnement.
+          envFrom:
+            - configMapRef:
+                name: todo-config
+            - secretRef:
+                name: todo-secret

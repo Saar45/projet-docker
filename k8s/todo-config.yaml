@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: todo-config
+  namespace: todo
+data:
+  # Les variables non sensibles que l'API lit au démarrage.
+  # DB_HOST est le nom du Service de la base (phase 3), résolu par le DNS
+  # interne du cluster — ni une IP, ni localhost.
+  DB_HOST: "todo-db"
+  DB_PORT: "5432"
+  PORT: "3000"
