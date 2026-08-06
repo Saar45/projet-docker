@@ -29,6 +29,15 @@ spec:
           image: nabysarr16/todo-api:2fc5e6cc4ff947c250aac16ea3d0f98eb64a1b64
           ports:
             - containerPort: 3000
+          # requests : ce que le pod réserve au placement (mesuré : ~47Mi/25m au repos)
+          # limits : ce qu'il ne doit jamais dépasser — dépasser la mémoire = OOMKilled
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "128Mi"
           # Toute la configuration vient du cluster, rien de l'image :
           # envFrom déverse chaque clé des deux objets en variable d'environnement.
           envFrom:
