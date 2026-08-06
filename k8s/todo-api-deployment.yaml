@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-api
+  namespace: todo
+  labels:
+    app: todo-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todo-api
+  template:
+    metadata:
+      labels:
+        app: todo-api
+    spec:
+      containers:
+        - name: todo-api
+          # Le sha d'un commit dont la pipeline est verte, jamais latest :
+          # c'est la pipeline qui mettra ce tag à jour à chaque push (phase 5).
+          image: nabysarr16/todo-api:d4309d04a7c696c7674431ef4febfb1866f4ec7a
+          ports:
+            - containerPort: 3000

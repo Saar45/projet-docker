@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-api
+  namespace: todo
+spec:
+  type: ClusterIP
+  # Cible tous les pods portant cette étiquette, quel que soit leur nombre
+  # ou leur adresse du moment.
+  selector:
+    app: todo-api
+  ports:
+    - port: 80          # le port exposé par le Service
+      targetPort: 3000  # le port réellement écouté par les pods
