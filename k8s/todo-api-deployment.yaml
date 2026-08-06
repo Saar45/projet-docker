@@ -34,10 +34,10 @@ spec:
           resources:
             requests:
               cpu: "50m"
-              memory: "64Mi"
+              memory: "48Mi"
             limits:
               cpu: "500m"
-              memory: "64Mi"
+              memory: "48Mi"
           # Toute la configuration vient du cluster, rien de l'image :
           # envFrom déverse chaque clé des deux objets en variable d'environnement.
           envFrom:
