@@ -76,27 +76,17 @@ jobs:
     # Rien ne se déploie avant que l'image existe, et seulement depuis main.
     needs: build
     if: github.ref == 'refs/heads/main'
-    # Ce job tourne chez nous, à côté de la machine cible : le runner GitHub
-    # hébergé ne pourrait jamais joindre une machine derrière une box.
+    # Le runner self-hosted partage la machine du cluster : le job n'a besoin
+    # ni de clé SSH ni de secret supplémentaire, juste du kubectl local qui
+    # lit le kubeconfig du poste.
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
-      # La clé privée vit dans un agent SSH, en mémoire seulement :
-      # jamais écrite sur le disque du runner.
-      - uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
-      - name: Envoyer le compose de production et la config de monitoring
-        run: scp -P ${{ secrets.DEPLOY_PORT }} -o StrictHostKeyChecking=accept-new -r compose.yml monitoring ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/todo/
-      - name: Déployer la version du commit
-        run: ssh -p ${{ secrets.DEPLOY_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "cd /srv/todo && TAG=${{ github.sha }} docker compose up -d"
-      - name: Vérifier que l'API répond
-        run: |
-          for i in $(seq 1 15); do
-            if curl -sf http://${{ secrets.DEPLOY_HOST }}:3000/health > /dev/null; then
-              echo "API en ligne :" && curl -s http://${{ secrets.DEPLOY_HOST }}:3000/health
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "L'API ne répond pas après le déploiement" && exit 1
+      - name: Rendre kubectl visible du job
+        run: echo "/usr/local/bin" >> "$GITHUB_PATH"
+      - name: Mettre à jour l'image du Deployment
+        run: kubectl --context k3d-todo-cluster set image deployment/todo-api todo-api=${{ secrets.DOCKERHUB_USER }}/todo-api:${{ github.sha }} -n todo
+      - name: Attendre la convergence du rollout
+        # Si le rollout ne converge pas (image introuvable, pod qui crashe),
+        # cette commande ne rend jamais la main : le timeout fait échouer le
+        # job — la pipeline refuse de déclarer un succès qu'elle n'a pas.
+        run: kubectl --context k3d-todo-cluster rollout status deployment/todo-api -n todo --timeout=180s
