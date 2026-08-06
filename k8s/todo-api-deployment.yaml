@@ -7,6 +7,13 @@ metadata:
     app: todo-api
 spec:
   replicas: 3
+  # Zéro baisse de capacité pendant une mise à jour : un pod de plus est
+  # autorisé temporairement (maxSurge), jamais un pod de moins (maxUnavailable).
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: todo-api
